@@ -48,6 +48,6 @@ class ScraperController extends Controller
         // }
 
 
-        return view('scraper', compact('data'));
+        return view('scraper');
     }
 }

@@ -37,20 +37,20 @@ class PriceObsController extends Controller
      */
     public function store(Request $request)
     {
-        
+    
         $data = $request->validate([
             'description'  => '',
             'url'          => 'required',
             'reference'    => 'required',
             'reference_id' => 'required',
-            'price'        => 'required',
+            'price'        => '',
             'old_price'    => '',
-            'mail'         => 'required'
+            'mail'         => 'required',
+            'updates'      => 'required'
         ]);
-
         PriceObs::create($data);
 
-        return redirect()->route('prices.index')
+        return redirect()->route('objects.index')
                          ->with('success', 'created item successfully');
     }
 
@@ -60,9 +60,10 @@ class PriceObsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show(PriceObs $price)
+    public function show($id)
     {
-        return view('objects.show', compact('objects'));
+        $dataObject = PriceObs::findOrFail($id);
+        return ["object" => $dataObject];
     }
 
     /**
@@ -83,20 +84,11 @@ class PriceObsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, PriceObs $price)
+    public function update(Request $request, $id)
     {
-        $request->validate([
-            'description'  => 'required',
-            'url'          => 'required',
-            'reference'    => 'required',
-            'reference_id' => 'required',
-            'price'        => 'required',
-            'old_price'    => '',
-            'mail'         => 'required'
-        ]);
-
-        $objects->update($request->validated());
-
+        $objects = PriceObs::findOrFail($id);
+        $objects->update($request->all());
+        
         return redirect()
                          ->route('objects.index')
                          ->with('success', 'Object updated successfully');
@@ -108,9 +100,10 @@ class PriceObsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(PriceObs $price)
+    public function destroy($id)
     {
-        $price->delete();
+        $object = PriceObs::findOrFail($id);
+        $object->delete();
 
         return response()->noContent();
     }

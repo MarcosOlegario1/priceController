@@ -8,9 +8,9 @@
 </head>
 <body>
     <ul class="list-group">
-    @foreach ($data as $key => $value)
+    <!-- @foreach ($data as $key => $value)
         <li class="list-group-item">{{$value}}</li>
-    @endforeach
+    @endforeach -->
     </ul>
 </body>
 </html>

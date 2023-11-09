@@ -5,8 +5,9 @@ namespace App\Console\Commands;
 use DOMDocument;
 use DOMXPath;
 use Exception;
+use App\Models\PriceObs;
 use Illuminate\Console\Command;
-use Symfony\Component\Console\Logger\ConsoleLogger;
+use Illuminate\Support\Facades\DB;
 
 class MakeScrap extends Command
 {
@@ -29,7 +30,7 @@ class MakeScrap extends Command
      *
      * @return void
      */
-    public function __construct()
+    public function __construct()   
     {
         parent::__construct();
     }
@@ -41,41 +42,98 @@ class MakeScrap extends Command
      */
     public function handle()
     {
-
         $results = array();
+        $separatedSites = array();
 
-        $sites = array (
-            array('//*[@id="blocoValores"]/div[2]/div[1]/div/h4', 'https://www.kabum.com.br/produto/463074/iphone-14-apple-128gb-meia-noite-tela-de-6-1-5g-camera-dupla-de-12mp-ios-mpuf3br-a'),
-            array('//*[@id="blocoValores"]/div[2]/div[1]/div/h4', 'https://www.kabum.com.br/produto/95217/ssd-960-gb-kingston-a400-sata-leitura-500mb-s-e-gravacao-450mb-s-sa400s37-960g'),
-            array('//*[@id="blocoValores"]/div[2]/div[1]/div/h4', 'https://www.kabum.com.br/produto/174032/ssd-kingston-480gb-a400-sata-leitura-500mb-s-e-gravacao-450mb-s-sa400s37-480g'),
-            array('//*[@id="blocoValores"]/div[2]/div[1]/div/h4', 'https://www.kabum.com.br/produto/471697/notebook-gamer-acer-nitro-5-amd-ryzen-5-7535hs-8gb-nvidia-rtx-3050-ssd-512gb-15-6-full-hd-linux-gutta-preto-an515-47-r5su')
-        );
+        $results = PriceObs::all()->toArray();
 
-        foreach ($sites as $key => $value) {
-            try{
-                $httpClient = new \GuzzleHttp\Client([
-                    'headers' => [
-                        'User-Agent' => 'testing/1.0',
-                        'Accept'     => 'application/json',
-                        'cookies'    => true,
-                ]]);
-                $response = $httpClient->get($value[1]);
-                $htmlString = (string) $response->getBody();
-                libxml_use_internal_errors(true);
-                $doc = new DOMDocument();
-                $doc->loadHTML($htmlString);
-                $xpath = new DOMXPath($doc);
-                $titles = $xpath->evaluate($value[0]);
-                foreach ($titles as $key => $title) {
-                    error_log($title->textContent);
-                    array_push($results, $title->textContent);
+        function updateItem($array)
+        {
+            $object = $array;
+            DB::table('items')
+                    ->where('id', $object['id'])
+                    ->update([
+                        "price"      => $object['price'],
+                        "old_price"  => $object['old_price'],
+                        "updated_at" => $object['updated_at'],
+                        "updates"    => $object["updates"]
+                    ]);
+        }
+
+        //Remove unused items from each site (not used only in scrap)
+        foreach($results as &$value)
+        {
+            unset(
+                $value['description'],
+                $value['reference_id'],
+                $value['status'],
+                $value['created_at'],
+            );
+        }
+
+        foreach($results as &$value) 
+        {
+            $url = parse_url($value['url'], PHP_URL_HOST);
+            if(!in_array($url, array_keys($separatedSites)))
+            {
+                $separatedSites[$url] = [];
+            }
+
+            array_push($separatedSites[$url], $value);
+        }
+
+        //Since here at TRY, is for progressive scrap, scrapping one site for each array at time
+        $maxIndex = 0;
+        foreach($separatedSites as &$loopSites) 
+        {
+            $size = count($loopSites);
+            if($size > $maxIndex)
+            {
+                $maxIndex = $size;
+            }
+        }
+
+        for($i = 0; $i < $maxIndex; $i++)
+        {
+            foreach(array_keys($separatedSites) as $url)
+            {
+               if(!empty($separatedSites[$url][$i]))
+               {
+                $value = $separatedSites[$url][$i];
+                try
+                {
+                    $httpClient = new \GuzzleHttp\Client([
+                        'headers' => [
+                            'User-Agent'      => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0',
+                            'Accept-Language' => 'en-US,en;q=0.5',
+                            'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                            'cookies'         => true,
+                    ]]);
+                    $response = $httpClient->get($value['url']);
+                    $htmlString = (string) $response->getBody();
+                    libxml_use_internal_errors(true);
+                    $doc = new DOMDocument();
+                    $doc->loadHTML($htmlString);
+                    $xpath = new DOMXPath($doc);
+                    $titles = $xpath->evaluate($value['reference']);
+                    foreach ($titles as $key => $title) 
+                    {
+                        $newValue = $title->textContent;
+                        
+                        // if($value['price'] > $newValue || $value['price'] == null)
+                        // {
+                            $value['old_price']  = $value['price'];
+                            $value['price']      = $newValue;
+                            $value['updated_at'] = date("Y-m-d H:i:s");
+                            $value['updates']    = $value['updates'] + 1;
+                            updateItem($value);
+                        // }
+                    }
+                }catch (Exception $e){
+                    error_log("Exception:" . $e->getMessage());
+                    report($e->getMessage());
                 }
-                $data = $results;
-                //data returns array of strings obviously
-            }catch (Exception $e){
-                error_log('Error in item:' . $value);
-                error_log("Exception:" . $e->getMessage());
-                echo($e->getMessage());
+               }
             }
         }
     }

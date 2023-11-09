@@ -19,4 +19,4 @@ use App\Http\Controllers\PriceObsController;
 //     return $request->user();
 // });
 
-Route::apiResource('prices', PriceObsController::class);
+Route::apiResource('objects', PriceObsController::class);

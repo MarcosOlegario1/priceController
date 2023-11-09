@@ -9,7 +9,7 @@ class PriceObs extends Model
 {
     use HasFactory;
 
-    protected $table = 'objects';
+    protected $table = 'items';
 
     protected $fillable = [
         'id',
@@ -19,7 +19,8 @@ class PriceObs extends Model
         'reference_id',
         'price',
         'old_price',
-        'mail'
+        'mail',
+        'updates'
     ];
 
 }
