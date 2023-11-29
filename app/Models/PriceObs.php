@@ -20,6 +20,7 @@ class PriceObs extends Model
         'price',
         'old_price',
         'mail',
+        'status',
         'updates'
     ];
 

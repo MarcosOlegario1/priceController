@@ -14,7 +14,7 @@ class PriceObsController extends Controller
      */
     public function index()
     {
-        $objects = PriceObs::latest()->paginate(15);
+        $objects = PriceObs::latest()->where('status', 1)->paginate(15);
 
         return response()->json($objects);
     }
@@ -37,12 +37,11 @@ class PriceObsController extends Controller
      */
     public function store(Request $request)
     {
-    
         $data = $request->validate([
             'description'  => '',
             'url'          => 'required',
             'reference'    => 'required',
-            'reference_id' => 'required',
+            'reference_id' => '',
             'price'        => '',
             'old_price'    => '',
             'mail'         => 'required',
@@ -57,13 +56,22 @@ class PriceObsController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
+     * @param  int|string  $param
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($param)
     {
-        $dataObject = PriceObs::findOrFail($id);
-        return ["object" => $dataObject];
+        if(is_numeric($param))
+        {
+            $dataObject = PriceObs::where('id', $param)->get();
+            return ["object" => $dataObject];
+        }
+
+        if(is_string($param) && $param === 'history')
+        {
+            $disableObjects = PriceObs::latest()->where('status', 0)->paginate(15);
+            return  $disableObjects;   
+        }
     }
 
     /**
@@ -89,9 +97,12 @@ class PriceObsController extends Controller
         $objects = PriceObs::findOrFail($id);
         $objects->update($request->all());
         
-        return redirect()
-                         ->route('objects.index')
-                         ->with('success', 'Object updated successfully');
+        $objects = match ($request->status) {
+            1 => PriceObs::latest()->where('status', 0)->paginate(15),
+            0 => PriceObs::latest()->where('status', 1)->paginate(15)
+        };
+
+        return response($objects, 200);
     }
 
     /**
@@ -107,4 +118,5 @@ class PriceObsController extends Controller
 
         return response()->noContent();
     }
+
 }
