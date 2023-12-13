@@ -38,14 +38,14 @@ class PriceObsController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'description'  => '',
+            'description'  => 'required',
             'url'          => 'required',
             'reference'    => 'required',
             'reference_id' => '',
             'price'        => '',
             'old_price'    => '',
-            'mail'         => 'required',
-            'updates'      => 'required'
+            'mail'         => '',
+            'updates'      => ''
         ]);
         PriceObs::create($data);
 
@@ -63,14 +63,14 @@ class PriceObsController extends Controller
     {
         if(is_numeric($param))
         {
-            $dataObject = PriceObs::where('id', $param)->get();
-            return ["object" => $dataObject];
+            $dataObject = PriceObs::findOrFail($param);
+            return $dataObject;
         }
 
         if(is_string($param) && $param === 'history')
         {
             $disableObjects = PriceObs::latest()->where('status', 0)->paginate(15);
-            return  $disableObjects;   
+            return $disableObjects;   
         }
     }
 

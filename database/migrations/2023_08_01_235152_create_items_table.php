@@ -18,12 +18,12 @@ class CreateItemsTable extends Migration
             $table->string('description', 255)->nullable();
             $table->string('url');
             $table->string('reference');
-            $table->integer('reference_id');
+            $table->integer('reference_id')->default(1);
             $table->string('price', 50)->nullable();
             $table->string('old_price', 50)->nullable();
             $table->string('mail', 50);
             $table->boolean('status')->default(1);
-            $table->integer('updates') ->nullable();
+            $table->integer('updates')->nullable()->default(0);
             $table->timestamps();
         });
     }
