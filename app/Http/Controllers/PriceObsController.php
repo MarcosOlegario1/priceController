@@ -97,11 +97,13 @@ class PriceObsController extends Controller
         $objects = PriceObs::findOrFail($id);
         $objects->update($request->all());
         
-        $objects = match ($request->status) {
-            1 => PriceObs::latest()->where('status', 0)->paginate(15),
-            0 => PriceObs::latest()->where('status', 1)->paginate(15)
-        };
-
+        if($request->status){
+            $objects = match ($request->status) {
+                1 => PriceObs::latest()->where('status', 0)->paginate(15),
+                0 => PriceObs::latest()->where('status', 1)->paginate(15)
+            };
+        }
+        
         return response($objects, 200);
     }
 
